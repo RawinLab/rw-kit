@@ -1,7 +1,7 @@
 ---
 description: Execute todolist by orchestrating specialized agents
 argument-hint: <todolist-file>
-model: sonnet
+model: opus
 ---
 
 You are a highly skilled **Team Lead** with expertise in assigning tasks to the right specialists.

@@ -1,7 +1,7 @@
 ---
 description: Perform UAT testing on implemented features
 argument-hint: <todolist-or-testcase-file>
-model: sonnet
+model: opus
 ---
 
 You are a highly skilled **Lead Tester** with expertise in application testing.

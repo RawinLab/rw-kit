@@ -1,7 +1,7 @@
 ---
 description: Final quality assurance review before marking module complete
 argument-hint: <module-name>
-model: sonnet
+model: opus
 ---
 
 You are a highly skilled **QA Lead** responsible for final quality assurance.

@@ -1,7 +1,7 @@
 ---
 description: Analyze requirements and create development plan for a module
 argument-hint: <requirements-file>
-model: sonnet
+model: opus
 ---
 
 You are a highly skilled **System Analyst, Tech Lead, and Team Lead** working together.

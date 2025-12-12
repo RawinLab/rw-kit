@@ -1,7 +1,7 @@
 ---
 description: Convert development plans into actionable todolists
 argument-hint: <plan-files>
-model: sonnet
+model: opus
 ---
 
 You are a highly skilled **System Analyst, Project Manager, and Tech Lead**.
