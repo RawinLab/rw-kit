@@ -17,29 +17,89 @@ Analyze the requirements file `$ARGUMENTS` and create a comprehensive developmen
 2. Identify all modules and sub-modules
 3. Understand the business logic and user stories
 
-### Step 2: Select Sub-Module
+### Step 2: Identify All Sub-Modules
 1. From the main module, identify all sub-modules (e.g., 1.1, 1.2, 1.3)
-2. Select ONE sub-module to plan first
-3. When complete, proceed to the next sub-module
+2. Create a list of all sub-modules with their respective names
+3. Plan ONE sub-module at a time, creating separate plan files for each
 
-### Step 3: Read Existing Codebase
-**CRITICAL**: Before planning, you MUST:
-1. Use `Explore` agent to explore the existing codebase structure
-2. Identify what has already been implemented
-3. Understand current patterns and conventions
-4. Note any shared components or utilities that can be reused
+### Step 3: Read Existing Codebase (Background Parallel Analysis)
 
-### Step 4: Research Additional Features
-1. Research best practices for this type of feature
-2. Consider security implications
-3. Identify potential edge cases
-4. Suggest improvements beyond basic requirements
+> **IMPORTANT**: Follow the scheduling pattern in `.claude/kbs/scheduling-pattern.md`
 
-### Step 5: Create Development Plan
-For each sub-module, create a plan that includes:
+Launch ALL analysis agents in background with **Minimal Output Template**:
+```javascript
+Task({
+  subagent_type: "Explore",
+  prompt: `Search codebase structure and patterns for: $ARGUMENTS
+
+---
+RESPONSE FORMAT (CRITICAL):
+When complete, respond with ONLY:
+DONE: [1-2 sentence summary]
+Structure: [key directories and patterns found]
+---`,
+  run_in_background: true
+})
+
+Task({
+  subagent_type: "sa-analyst",
+  prompt: `Analyze business requirements from: $ARGUMENTS
+
+---
+RESPONSE FORMAT (CRITICAL):
+When complete, respond with ONLY:
+DONE: [1-2 sentence summary]
+Requirements: [key requirements identified]
+---`,
+  run_in_background: true
+})
+
+Task({
+  subagent_type: "tech-lead",
+  prompt: `Review tech stack and architecture for: $ARGUMENTS
+
+---
+RESPONSE FORMAT (CRITICAL):
+When complete, respond with ONLY:
+DONE: [1-2 sentence summary]
+Architecture: [key architectural decisions]
+---`,
+  run_in_background: true
+})
+```
+
+Poll non-blocking and use results as they complete - don't wait for all!
+
+### Step 4: Research Additional Features (Dynamic Scheduling)
+
+Start research as soon as analysis data is available (with Minimal Output Template):
+```javascript
+// As soon as sa-analyst completes
+Task({
+  subagent_type: "full-stack-orchestration:security-auditor",
+  prompt: `Identify security requirements for: $ARGUMENTS
+
+---
+RESPONSE FORMAT (CRITICAL):
+When complete, respond with ONLY:
+DONE: [1-2 sentence summary]
+Security: [key security requirements]
+---`,
+  run_in_background: true
+})
+```
+
+### Step 5: Create Development Plan for Each Sub-Module
+
+For EACH sub-module, create a DEDICATED plan file that includes:
+
+#### Module Information
+- Module number: (e.g., 1.1)
+- Module name: (e.g., Authentication)
+- Dependencies: Other modules this depends on
 
 #### Feature List
-- List all features to be implemented
+- List all features for THIS sub-module only
 - Prioritize by importance
 - Note dependencies between features
 
@@ -54,28 +114,71 @@ For each sub-module, create a plan that includes:
 - E2E test scenarios (Playwright)
 - Edge cases to test
 
-### Step 6: Save Plan File
-Save the plan with this naming pattern:
+### Step 6: Save Plan Files (CRITICAL)
+
+**IMPORTANT**: You MUST use the `Write` tool to save each plan file!
+
+For EACH sub-module, create a SEPARATE plan file:
 ```
-requirements/{main}-{sub}-{modulename}-plan.md
+plans/{main}-{sub}-{modulename}-plan.md
 ```
 
-Example: `requirements/1-1-user-registration-plan.md`
+```javascript
+// REQUIRED: Use Write tool to create each plan file
+Write({
+  file_path: "plans/1-1-authentication-plan.md",
+  content: `# Plan: Authentication (Module 1.1)
 
-## Agent Usage
+## Module Information
+- Module: 1.1
+- Name: Authentication
+- Dependencies: None
 
-Use Claude Code subagents for parallel work:
-- `Explore` agent - For codebase exploration
-- `Plan` agent - For detailed implementation planning
-- `sa-analyst` agent - For requirements analysis
-- `tech-lead` agent - For technical design
+## Features
+...
 
-Check available agents with `/agents` command.
+## Technical Design
+...
+`
+})
+```
+
+Examples:
+- `plans/1-1-authentication-plan.md`
+- `plans/1-2-page-structure-plan.md`
+- `plans/1-3-user-profile-plan.md`
+
+### Step 7: Verify Plan Files Were Created
+
+```javascript
+// Verify each plan file was created
+Read({ file_path: "plans/1-1-authentication-plan.md" })
+Glob({ pattern: "plans/*-plan.md" })
+```
+
+**IMPORTANT**:
+- ONE plan file per sub-module
+- Do not combine multiple sub-modules in one file
+- Each file should be self-contained and implementable independently
+- **Do NOT proceed until all plan files exist!**
+
+## Available Agents
+
+| Purpose | Agent |
+|---------|-------|
+| Codebase exploration | `Explore` |
+| Business requirements | `sa-analyst` |
+| Architecture design | `tech-lead` |
+| Backend design | `backend-development:backend-architect` |
+| Frontend design | `multi-platform-apps:frontend-developer` |
+| Security requirements | `full-stack-orchestration:security-auditor` |
+| Documentation | `documentation-generation:docs-architect` |
 
 ## After Completion
 
-When the plan for one sub-module is complete:
-1. Save the plan file
-2. Notify completion
-3. Proceed to the next sub-module
-4. Repeat until all sub-modules are planned
+For EACH sub-module:
+1. Complete the plan for ONE sub-module
+2. Save it to `plans/{main}-{sub}-{modulename}-plan.md`
+3. Notify completion of this sub-module
+4. Proceed to the next sub-module
+5. Repeat until ALL sub-modules have their own plan files

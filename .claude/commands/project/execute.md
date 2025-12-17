@@ -8,7 +8,43 @@ You are a highly skilled **Team Lead** with expertise in assigning tasks to the 
 
 ## Your Mission
 
-Execute the todolist `$ARGUMENTS` by orchestrating specialized Claude Code subagents to complete all tasks.
+Execute the todolist `$ARGUMENTS` by orchestrating specialized Claude Code subagents with **context-aware batch execution** and **integrated testing phases**.
+
+## Context Management (CRITICAL)
+
+> **PROBLEM**: Running many parallel agents causes main context to fill up quickly.
+> **SOLUTION**: Use batch-based execution with compaction between batches.
+>
+> **Reference**: See `.claude/kbs/scheduling-pattern.md` for full details.
+
+### Context Rules
+1. **Maximum 5-7 agents per batch** - prevents context overflow
+2. **Compact after each batch** - use `/compact` to free context
+3. **Minimize agent output** - tell agents to reply "DONE" only (see Minimal Output Template below)
+4. **Use subagents** - each agent has isolated context
+5. **Verify via files** - check created files instead of parsing agent output
+
+### Minimal Output Template (MUST USE)
+
+**CRITICAL**: Always append this to EVERY subagent prompt to prevent context bloat:
+
+```
+---
+RESPONSE FORMAT (CRITICAL):
+When complete, respond with ONLY:
+DONE: [1-2 sentence summary]
+Files: [comma-separated list of files created/modified]
+
+Do NOT include:
+- Code snippets
+- Full file contents
+- Detailed explanations
+- Logs or debug output
+---
+```
+
+**Why?** Without this, a single agent can return 500+ lines of output, filling main context quickly.
+With this template, each agent returns ~50 tokens instead of ~5,000-20,000 tokens.
 
 ## Core Principles
 
@@ -19,82 +55,230 @@ Execute the todolist `$ARGUMENTS` by orchestrating specialized Claude Code subag
 - Use subagents to do the implementation
 
 ### 2. Use the Right Agent for Each Task
-| Task Type | Recommended Agent |
-|-----------|-------------------|
-| Database/Prisma | `backend-architect` |
-| API/NestJS | `backend-architect` |
-| UI/React/Next.js | `frontend-developer` |
-| Security Review | `security-auditor` |
-| Unit Tests | `test-automator` |
-| E2E Tests | `test-automator` |
-| Code Exploration | `Explore` |
 
-Check available agents with `/agents` command.
+| Task Type | Agent | Example |
+|-----------|-------|---------|
+| Database/Prisma | `backend-development:backend-architect` | "Update Prisma schema..." |
+| API/NestJS | `backend-development:backend-architect` | "Create REST endpoint..." |
+| UI/React/Next.js | `multi-platform-apps:frontend-developer` | "Build React component..." |
+| Security Review | `full-stack-orchestration:security-auditor` | "Review auth security..." |
+| Unit Tests | `full-stack-orchestration:test-automator` | "Write Jest tests..." |
+| E2E Tests | `full-stack-orchestration:test-automator` | "Write Playwright tests..." |
+| Performance | `full-stack-orchestration:performance-engineer` | "Optimize queries..." |
+| TypeScript | `javascript-typescript:typescript-pro` | "Fix type errors..." |
+| Debugging | `unit-testing:debugger` | "Debug failing test..." |
+| Code Search | `Explore` | "Find auth implementations..." |
 
 ### 3. Always Read Existing Code First
 Before implementing ANY task:
-1. Use `Explore` agent to understand current codebase
-2. Check if similar code already exists
-3. Follow existing patterns and conventions
+1. **Use Explore agent**: Search for existing implementations
+2. **Check for duplicates**: Look for similar functionality
+3. **Follow patterns**: Maintain consistency with existing code
 
-### 4. Parallel Execution
-- Run independent tasks in parallel
-- Dependent tasks must run sequentially
+---
 
-## Execution Process
+## Execution Process (5 Phases)
 
-### Step 1: Read TodoList
-1. Read the todolist file using @$ARGUMENTS
-2. Understand all tasks and dependencies
-3. Identify which tasks can run in parallel
+### Phase 1: Parse & Plan
 
-### Step 2: Execute Tasks
-For each task:
-1. Mark task as "In Progress"
-2. Read existing code related to the task
-3. Assign to appropriate subagent with clear instructions
-4. Monitor completion
-5. Verify the work is correct
-6. Run relevant tests
-7. Mark task as "Completed"
-8. Commit changes
-
-### Step 3: Handle Failures
-If a task fails:
-1. Identify the root cause
-2. If unclear, refer back to the plan file (`*-plan.md`)
-3. Assign fix to appropriate agent
-4. Re-verify after fix
-
-### Step 4: Testing
-After implementation:
-```bash
-npm test
-npm run test:e2e
-npm run typecheck
+#### Step 1.1: Read TodoList
+```javascript
+Read("$ARGUMENTS")
 ```
 
-### Step 5: Quality Check
-Before marking complete:
-- [ ] All tasks completed
-- [ ] All tests passing
-- [ ] No TypeScript errors
-- [ ] Changes committed
+#### Step 1.2: Parse Tasks and Check Status
+For each task in the todolist:
+1. Check if task is already marked as `[x]` or `✅` → **SKIP**
+2. Check if task is marked as `[ ]` or `⬜` → **PENDING** (will execute)
+3. Check if task is marked as `🔄` → **IN PROGRESS** (resume)
 
-## Permissions
+#### Step 1.3: Verify Implementation (Batch - Max 3 agents)
+Before executing pending tasks, verify if code already exists:
+```javascript
+Task(subagent_type: "Explore",
+  prompt: "Check if these features are already implemented: [list pending tasks]. Return which tasks already have working code.",
+  run_in_background: true)
+```
 
-You have full permission to:
-- Create/modify files
-- Run commands
-- Install packages (within tech stack)
-- Commit changes
+#### Step 1.4: Group Pending Tasks into Batches
+Group **only pending tasks** by dependency level:
+- **Batch 0**: Tasks with no dependencies (root tasks)
+- **Batch 1**: Tasks depending only on Batch 0
+- **Batch 2**: Tasks depending only on Batch 0 or 1
+- Continue until all tasks are assigned
 
-Focus on completing tasks. Do not ask for confirmation - just execute.
+#### Step 1.5: Compact After Planning
+```
+📋 Planning Summary:
+- Total tasks: X
+- Already completed: Y (skipped)
+- Pending tasks: Z
+- Batches created: N
 
-Use `/compact` when context becomes large to reduce hallucination.
+/compact
+```
+
+### Phase 2: Batch Implementation
+
+For EACH batch:
+
+#### Step 2.1: Launch Batch (Max 5-7 agents)
+```javascript
+// Launch ALL tasks in current batch with MINIMAL OUTPUT template
+Task(subagent_type: "backend-development:backend-architect", prompt: `
+  Task 1: Create auth endpoints
+
+  Requirements:
+  - POST /auth/register
+  - POST /auth/login
+
+  ---
+  RESPONSE FORMAT (CRITICAL):
+  When complete, respond with ONLY:
+  DONE: [1-2 sentence summary]
+  Files: [comma-separated list]
+
+  Do NOT include code snippets or detailed explanations.
+  ---
+`, run_in_background: true)
+```
+
+#### Step 2.2: Poll Until Batch Complete
+```javascript
+while (batchTasksRunning) {
+  for (agent of batchAgents) {
+    result = TaskOutput(agent.id, block: false)
+    if (result.completed) {
+      // Record: ✅ Task X completed
+      // DON'T parse full output - verify via files instead:
+      Glob({ pattern: "apps/api/src/auth/*.ts" })
+    }
+    if (result.failed) {
+      // Launch fix agent with MINIMAL OUTPUT template
+      Task(subagent_type: "unit-testing:debugger", prompt: "Fix: [error details]...", run_in_background: true)
+    }
+  }
+}
+```
+
+#### Step 2.3: Update TodoList File (CRITICAL)
+After each task completes, **immediately update the todolist file**:
+```javascript
+Edit({
+  file_path: "$ARGUMENTS",
+  old_string: "- [ ] Task X description",
+  new_string: "- [x] Task X description ✅"
+})
+```
+
+#### Step 2.4: Compact Before Next Batch
+```
+📊 Batch N Summary:
+- ✅ Task 1: Completed (created 3 files)
+- ✅ Task 2: Completed (updated API)
+
+TodoList Updated: $ARGUMENTS
+
+Use /compact to compress context before next batch
+```
+
+---
+
+### Phase 3: Unit Testing (Jest)
+
+After ALL implementation batches complete:
+
+```bash
+npm test -- --coverage --passWithNoTests
+```
+
+- If **ALL PASS**: Proceed to E2E testing
+- If **FAILURES**: Launch fix agents, re-run tests
+
+---
+
+### Phase 4: E2E Testing (Playwright)
+
+```bash
+npx playwright test --project=chromium
+```
+
+- If **ALL PASS**: Proceed to final checks
+- If **FAILURES**: Launch fix agents, re-run tests
+
+---
+
+### Phase 5: Final Quality Check
+
+#### Step 5.1: Smoke Test (MANDATORY)
+
+> **CRITICAL**: Build passing ≠ Application working! Must verify runtime startup.
+
+```bash
+npm run dev &
+sleep 15
+
+# Verify API starts without DI errors
+curl -f http://localhost:{API_PORT}/api/health || echo "❌ API FAILED"
+
+# Verify Frontend responds
+curl -f -o /dev/null http://localhost:{WEB_PORT} || echo "❌ FRONTEND FAILED"
+
+echo "✅ Smoke test passed!"
+```
+
+#### Step 5.2: Run All Static Checks
+```bash
+npm run build        # Build check
+npm run typecheck    # TypeScript check
+npm run lint         # ESLint check
+```
+
+#### Step 5.3: Commit Changes
+```bash
+git add .
+git commit -m "feat(module): implement [module-name] with tests"
+```
+
+#### Step 5.4: Create Completion Report
+Create summary in `docs/reports/` with format `yyyyMMddHHmm-{module}-execution-summary.md`
+
+---
+
+## Quick Reference: Context Management
+
+```
+📋 Phase 1: Parse → Check Status → Verify → Group → /compact
+📦 Batch 0 (5-7 agents + MINIMAL OUTPUT) → Poll → Update TodoList → /compact
+📦 Batch 1 (5-7 agents + MINIMAL OUTPUT) → Poll → Update TodoList → /compact
+📦 Batch N (5-7 agents + MINIMAL OUTPUT) → Poll → Update TodoList → /compact
+🧪 Unit Tests → Fix → Rerun → /compact
+🎭 E2E Tests → Fix → Rerun → /compact
+🚀 Smoke Test (MANDATORY) → npm run dev → Health checks
+✅ Final Static Checks → Commit → Report
+```
+
+### Common Runtime Errors (Smoke Test Failures)
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Nest can't resolve dependencies` | Missing module import | Add module to `imports: []` |
+| `Cannot find module` | Missing package | Run `npm install` |
+| `ECONNREFUSED :5432` | Database not running | Start PostgreSQL |
+| `Module not found` | Wrong import path | Fix import statement |
+
+> **Reference**: See `.claude/kbs/qa-checklist.md` for comprehensive checklist
+
+---
 
 ## After Completion
 
-1. Update todolist file with completion status
-2. Create completion summary
-3. Module is ready for UAT testing
+1. ✅ All implementation tasks completed
+2. ✅ TodoList file updated (all tasks marked as `[x]`)
+3. ✅ Unit tests passing (>80% coverage)
+4. ✅ E2E tests passing
+5. ✅ **Smoke test passed** - `npm run dev` starts without errors
+6. ✅ Build and lint passing
+7. ✅ Changes committed
+8. ✅ Completion report created
+9. 📋 Ready for `/project:uat-test`

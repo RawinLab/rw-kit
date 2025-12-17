@@ -10,6 +10,15 @@ This template enables autonomous collaboration between specialized AI agents to 
 User → SA → Tech Lead → Team Lead → Developers → Tester → QA → Done!
 ```
 
+### Key Features
+
+- **Context-Aware Batch Scheduling** - Prevents context overflow with batched execution
+- **Minimal Output Template** - 99% context savings per agent
+- **Mandatory Smoke Testing** - Build passing ≠ Application working
+- **9 Slash Commands** - Full development lifecycle coverage
+- **5 Custom Agents** - Specialized roles for orchestration
+- **4 Knowledge Base Files** - Best practices and patterns
+
 ## Quick Start
 
 ### 1. Copy Template to Your Project
@@ -24,10 +33,11 @@ cp rawinlab-claude-template/CLAUDE.md your-project/
 
 Edit `CLAUDE.md` to match your project's tech stack.
 
-### 3. Create Requirements Folder
+### 3. Create Required Folders
 
 ```bash
-mkdir -p your-project/requirements
+mkdir -p your-project/plans
+mkdir -p your-project/docs/reports
 ```
 
 ### 4. Start Using Commands
@@ -45,72 +55,95 @@ claude  # Start Claude Code
 ```
 your-project/
 ├── .claude/
-│   ├── commands/           # Custom slash commands
+│   ├── commands/project/     # Slash commands
 │   │   ├── plan-module.md
 │   │   ├── plan-to-todolist.md
 │   │   ├── execute.md
+│   │   ├── implement.md        # NEW
+│   │   ├── create-tests.md     # NEW
+│   │   ├── create-e2e.md       # NEW
+│   │   ├── test-coverage.md    # NEW
 │   │   ├── uat-test.md
 │   │   └── qa-review.md
-│   └── agents/             # Custom agents
-│       ├── sa-analyst.md
-│       ├── tech-lead.md
-│       ├── team-lead.md
-│       ├── lead-tester.md
-│       └── qa-lead.md
-├── CLAUDE.md               # Project context
-├── requirements/           # Requirements & plans
+│   ├── agents/                 # Custom agents
+│   │   ├── sa-analyst.md
+│   │   ├── tech-lead.md
+│   │   ├── team-lead.md
+│   │   ├── lead-tester.md
+│   │   └── qa-lead.md
+│   └── kbs/                    # Knowledge base
+│       ├── scheduling-pattern.md
+│       ├── context-management-guide.md
+│       ├── qa-checklist.md
+│       └── test-writing-guide.md
+├── CLAUDE.md                   # Project context
+├── plans/                      # Plans & todolists
+├── docs/reports/               # Reports & summaries
 └── README.md
 ```
 
 ## Commands
 
+### Core Workflow Commands
+
 | Command | Description |
 |---------|-------------|
 | `/project:plan-module <file>` | Analyze requirements → create plan |
 | `/project:plan-to-todolist <file>` | Convert plan → todolist |
-| `/project:execute <file>` | Execute todolist with agents |
+| `/project:execute <file>` | Execute todolist with batch scheduling |
 | `/project:uat-test <file>` | Run UAT testing |
-| `/project:qa-review <module>` | Final QA review |
+| `/project:qa-review <module>` | Final QA review with smoke test |
+
+### Additional Commands
+
+| Command | Description |
+|---------|-------------|
+| `/project:implement <feature> <type>` | Full workflow (feature/fix/enhancement) |
+| `/project:create-tests <file>` | Generate unit tests (80%+ coverage) |
+| `/project:create-e2e <file>` | Generate Playwright E2E tests |
+| `/project:test-coverage <target>` | Analyze & improve test coverage |
 
 ### Usage Examples
 
 ```bash
-# Step 1: Create development plan
+# Full workflow for a feature
+/project:implement user-auth feature
+
+# Step-by-step approach
 /project:plan-module requirements/project-spec.md
-
-# Step 2: Convert to todolist
-/project:plan-to-todolist requirements/1-1-auth-plan.md
-
-# Step 3: Execute (implement code)
-/project:execute requirements/1-1-auth-todolist.md
-
-# Step 4: UAT Testing
-/project:uat-test requirements/1-1-auth-todolist.md
-
-# Step 5: QA Review
+/project:plan-to-todolist plans/1-1-auth-plan.md
+/project:execute plans/1-1-auth-todolist.md
+/project:uat-test plans/1-1-auth-todolist.md
 /project:qa-review 1-1-auth
+
+# Testing commands
+/project:create-tests apps/api/src/auth/auth.service.ts
+/project:create-e2e plans/1-1-auth-todolist.md
+/project:test-coverage 85
 ```
 
 ## Custom Agents
 
 ### Project-Specific Agents
 
-| Agent | Role | Description |
-|-------|------|-------------|
-| `sa-analyst` | System Analyst | Requirements analysis, feature specification |
-| `tech-lead` | Tech Lead | Architecture, API design, technical decisions |
-| `team-lead` | Team Lead | Task orchestration, agent assignment |
-| `lead-tester` | Lead Tester | UAT testing, bug coordination |
-| `qa-lead` | QA Lead | Final review, release approval |
+| Agent | Role | Model |
+|-------|------|-------|
+| `sa-analyst` | System Analyst - Requirements analysis | sonnet |
+| `tech-lead` | Tech Lead - Architecture, API design | sonnet |
+| `team-lead` | Team Lead - Task orchestration | opus |
+| `lead-tester` | Lead Tester - UAT testing | sonnet |
+| `qa-lead` | QA Lead - Final review, smoke test | opus |
 
 ### Built-in Agents (Claude Code)
 
 | Agent | Specialty |
 |-------|-----------|
-| `frontend-developer` | React, Next.js, UI |
-| `backend-architect` | NestJS, API, services |
-| `security-auditor` | Security review |
-| `test-automator` | Test automation |
+| `multi-platform-apps:frontend-developer` | React, Next.js, UI |
+| `backend-development:backend-architect` | NestJS, API, services |
+| `full-stack-orchestration:security-auditor` | Security review |
+| `full-stack-orchestration:test-automator` | Test automation |
+| `javascript-typescript:typescript-pro` | TypeScript patterns |
+| `unit-testing:debugger` | Debugging, test failures |
 | `Explore` | Codebase exploration |
 | `Plan` | Implementation planning |
 
@@ -122,24 +155,28 @@ Check all agents: `/agents`
 ┌─────────────────────────────────────────────────────────────┐
 │  STEP 1: Planning                                           │
 │  /project:plan-module                                       │
-│  Agents: sa-analyst, tech-lead                              │
-│  Output: *-plan.md                                          │
+│  Agents: sa-analyst, tech-lead (parallel)                   │
+│  Output: plans/*-plan.md                                    │
 └─────────────────────────────┬───────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  STEP 2: TodoList                                           │
 │  /project:plan-to-todolist                                  │
-│  Agents: sa-analyst, tech-lead                              │
-│  Output: *-todolist.md                                      │
+│  Agents: team-lead                                          │
+│  Output: plans/*-todolist.md (dependency-driven format)     │
 └─────────────────────────────┬───────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  STEP 3: Execute                                            │
+│  STEP 3: Execute (Batch Scheduling)                         │
 │  /project:execute                                           │
-│  Agents: team-lead → frontend-developer, backend-architect  │
-│  Output: Code + Tests                                       │
+│  📦 Batch 0 (5-7 agents) → /compact                         │
+│  📦 Batch 1 (5-7 agents) → /compact                         │
+│  🧪 Unit Tests → Fix → /compact                             │
+│  🎭 E2E Tests → Fix → /compact                              │
+│  🚀 Smoke Test (MANDATORY)                                  │
+│  Output: Code + Tests + Updated TodoList                    │
 └─────────────────────────────┬───────────────────────────────┘
                               │
                               ▼
@@ -147,6 +184,7 @@ Check all agents: `/agents`
 │  STEP 4: UAT Testing                                        │
 │  /project:uat-test                                          │
 │  Agents: lead-tester                                        │
+│  🚀 Smoke Test First (MANDATORY)                            │
 │  Output: Test Report, Bug Fixes                             │
 └─────────────────────────────┬───────────────────────────────┘
                               │
@@ -155,10 +193,60 @@ Check all agents: `/agents`
 │  STEP 5: QA Review                                          │
 │  /project:qa-review                                         │
 │  Agents: qa-lead                                            │
+│  🚀 Phase 0: Smoke Test (MANDATORY - Do First!)             │
 │  ✅ Pass → Done!                                            │
 │  ❌ Fail → Back to Step 3                                   │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Context Management
+
+### The Problem
+
+Running many parallel agents causes main context to fill up quickly.
+
+### The Solution: Batch-Based Execution
+
+```
+📦 Batch 0 (5-7 agents + MINIMAL OUTPUT) → /compact
+📦 Batch 1 (5-7 agents + MINIMAL OUTPUT) → /compact
+📦 Batch N (5-7 agents + MINIMAL OUTPUT) → /compact
+🧪 Unit Tests → Fix → /compact
+🎭 E2E Tests → Fix → /compact
+✅ Final Checks → Commit → Report
+```
+
+### Minimal Output Template
+
+**CRITICAL**: Always add this to subagent prompts:
+
+```
+---
+RESPONSE FORMAT (CRITICAL):
+When complete, respond with ONLY:
+DONE: [1-2 sentence summary]
+Files: [comma-separated list of files created/modified]
+
+Do NOT include:
+- Code snippets
+- Full file contents
+- Detailed explanations
+- Logs or debug output
+---
+```
+
+**Context Savings**: ~99% reduction per agent!
+
+> See `.claude/kbs/scheduling-pattern.md` for full details.
+
+## Knowledge Base (kbs)
+
+| File | Description |
+|------|-------------|
+| `scheduling-pattern.md` | Batch execution pattern with minimal output |
+| `context-management-guide.md` | 200k token limit strategies |
+| `qa-checklist.md` | Comprehensive QA with smoke test |
+| `test-writing-guide.md` | Jest & Playwright templates |
 
 ## Tech Stack (Default)
 
@@ -177,37 +265,56 @@ Check all agents: `/agents`
 
 Customize in `CLAUDE.md` for your project.
 
-## File Naming Convention
+## Quality Gates
 
-| Type | Pattern | Example |
-|------|---------|---------|
-| Plan | `{main}-{sub}-{name}-plan.md` | `1-1-auth-plan.md` |
-| TodoList | `{main}-{sub}-{name}-todolist.md` | `1-1-auth-todolist.md` |
+> **CRITICAL**: Build passing ≠ Application working!
+
+### Before Module Completion:
+- [ ] **Smoke test passed** - `npm run dev` starts without errors
+- [ ] **API health check** - `/api/health` responds
+- [ ] **Frontend responds** - Main page loads
+- [ ] All tasks in todolist completed
+- [ ] Unit test coverage >80%
+- [ ] E2E tests passing
+- [ ] Build and lint passing
+
+### Common Runtime Errors:
+| Error | Fix |
+|-------|-----|
+| `Nest can't resolve dependencies` | Add module to `imports: []` |
+| `Cannot find module` | Run `npm install` |
+| `ECONNREFUSED` | Start database |
 
 ## Best Practices
 
 ### 1. Always Read Existing Code
 All agents are configured to read existing code before implementing.
 
-### 2. Use Parallel Execution
-The `team-lead` agent runs independent tasks in parallel.
+### 2. Use Batch Execution
+Maximum 5-7 agents per batch, compact after each batch.
 
-### 3. Commit Frequently
+### 3. Minimal Output Template
+Always use the minimal output template for subagents.
+
+### 4. Smoke Test First
+Run `npm run dev` before any other QA checks.
+
+### 5. Commit Frequently
 Changes are committed after each completed task.
 
-### 4. Test Everything
-- Unit tests with Jest
+### 6. Test Everything
+- Unit tests with Jest (80%+ coverage)
 - E2E tests with Playwright
 - No mock data for UAT
 
-### 5. Use /compact
-When context becomes large, use `/compact` to reduce hallucination.
+### 7. Use /compact
+When context exceeds 60%, use `/compact` to free context.
 
 ## Customization
 
 ### Adding New Commands
 
-Create `.claude/commands/your-command.md`:
+Create `.claude/commands/project/your-command.md`:
 
 ```markdown
 ---
@@ -217,6 +324,8 @@ model: sonnet
 ---
 
 Your prompt here with $ARGUMENTS placeholder.
+
+> **Reference**: See `.claude/kbs/scheduling-pattern.md` for context management.
 ```
 
 ### Adding New Agents
@@ -231,6 +340,10 @@ model: sonnet
 ---
 
 Your agent's system prompt and instructions.
+
+## Context Management (CRITICAL)
+
+> Follow the batch-based execution pattern from `.claude/kbs/scheduling-pattern.md`
 ```
 
 ## Troubleshooting
@@ -240,12 +353,17 @@ Your agent's system prompt and instructions.
 2. Ensure files are in correct directory
 3. Restart Claude Code
 
+### Context Too Large
+Use `/compact` command to summarize and reduce context.
+
+### Smoke Test Fails
+1. Check for `Nest can't resolve dependencies` errors
+2. Verify all modules are properly imported
+3. Check database is running
+
 ### Agents Not Auto-Delegating
 1. Include "PROACTIVELY" in agent description
 2. Make description clear about when to use
-
-### Context Too Large
-Use `/compact` command to summarize and reduce context.
 
 ## License
 
